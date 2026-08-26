@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="az" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Çin Aqrar Dronları (UAV) İnteraktiv Analiz Portalı</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                        },
+                        slate: {
+                            850: '#111827',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar and chart container styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            height: 320px;
+            max-height: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 360px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased flex flex-col min-h-screen selection:bg-brand-500 selection:text-white">
+
+<!-- Chosen Palette: Slate & Emerald Modern Agriculture -->
+<!-- Application Structure Plan:
+     1. Navigation Bar: Sticky header with tab switching (Dashboard, Şirkətlər, Tipologiya, Matrisa, Model Baza & Müqayisə, Decision Assistant, Lüğət).
+     2. Hero / Executive Overview: Core report summary, key KPI counters, date of research (24 Avqust 2026).
+     3. Section 1: İcmal və Vizual Analitika (Dynamic Chart.js panels comparing payloads, flow rates, charge times).
+     4. Section 2: Şirkətlərin Analitik Reyestri (Interactive grid with filters, detailed modals/expanders for 10 manufacturers).
+     5. Section 3: Dron Tipologiyası və Aerodinamik Baxış (5 Core drone classes, downwash analysis, VTOL, Tethered, UGV).
+     6. Section 4: Tətbiq Məqsədi Matrisası (Matrix table with technology breakdown and critical Agro Note on Irrigation).
+     7. Section 5: Flaqman Modellərin Texniki Bazasının Müqayisəsi (Full 12-model interactive dataset with filter, search, & 3-model Head-to-Head comparator).
+     8. Section 6: Ağıllı Dron Seçim Köməkçisi (Decision Wizard calculator based on land size, terrain, & operational goals).
+     9. Section 7: Texniki Parametrlər və Mühəndislik Lüğəti (Searchable terms: RTK, Centrifugal Nozzle, Downwash, etc.).
+-->
+<!-- Visualization & Content Choices:
+     - Dashboard Metrics: Canvas Chart.js Bar & Bubble charts for MTOW vs Flow Rate and Battery Fast Charging speed.
+     - Matrix & Table: Clean HTML/Tailwind dynamic grids with client-side JS search & multi-field filter.
+     - Head-to-Head Comparison: Modal/Drawer side-by-side view for up to 3 selected drones.
+     - Confirming NO SVG elements or Mermaid JS used. All visual tags use pure HTML/CSS formatting and Canvas icons/charts.
+-->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <!-- TOP HEADER & NAV -->
+    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-md border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <span class="inline-block w-4 h-4 bg-brand-500 rounded-full animate-pulse"></span>
+                    <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                        <span>Çin Aqrar Dronları</span>
+                        <span class="text-xs font-normal bg-brand-800 text-brand-100 px-2 py-0.5 rounded-full border border-brand-600">Texniki Portal 2026</span>
+                    </h1>
+                </div>
+                <!-- Desktop Nav -->
+                <nav class="hidden md:flex space-x-1 text-sm font-medium">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="px-3 py-2 rounded-md hover:bg-slate-800 transition border-b-2 border-brand-500 text-white">İcmal & Analitika</button>
+                    <button onclick="switchTab('companies')" id="nav-companies" class="px-3 py-2 rounded-md hover:bg-slate-800 transition border-b-2 border-transparent text-slate-300">Şirkətlər (10)</button>
+                    <button onclick="switchTab('typology')" id="nav-typology" class="px-3 py-2 rounded-md hover:bg-slate-800 transition border-b-2 border-transparent text-slate-300">Tipologiya</button>
+                    <button onclick="switchTab('matrix')" id="nav-matrix" class="px-3 py-2 rounded-md hover:bg-slate-800 transition border-b-2 border-transparent text-slate-300">Tətbiq Matrisası</button>
+                    <button onclick="switchTab('models')" id="nav-models" class="px-3 py-2 rounded-md hover:bg-slate-800 transition border-b-2 border-transparent text-slate-300">Modellər & Müqayisə</button>
+                    <button onclick="switchTab('wizard')" id="nav-wizard" class="px-3 py-2 rounded-md hover:bg-slate-800 transition border-b-2 border-transparent text-slate-300">Seçim Köməkçisi</button>
+                    <button onclick="switchTab('glossary')" id="nav-glossary" class="px-3 py-2 rounded-md hover:bg-slate-800 transition border-b-2 border-transparent text-slate-300">Lüğət</button>
+                </nav>
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button onclick="toggleMobileMenu()" class="p-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 focus:outline-none">
+                        <span class="text-xl">☰</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Navigation Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-slate-900 border-b border-slate-800 px-4 pt-2 pb-4 space-y-1">
+            <button onclick="switchTab('dashboard'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-white hover:bg-slate-800">İcmal & Analitika</button>
+            <button onclick="switchTab('companies'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:bg-slate-800">Şirkətlər (10)</button>
+            <button onclick="switchTab('typology'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:bg-slate-800">Tipologiya</button>
+            <button onclick="switchTab('matrix'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:bg-slate-800">Tətbiq Matrisası</button>
+            <button onclick="switchTab('models'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:bg-slate-800">Modellər & Müqayisə</button>
+            <button onclick="switchTab('wizard'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:bg-slate-800">Seçim Köməkçisi</button>
+            <button onclick="switchTab('glossary'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:bg-slate-800">Lüğət</button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- INTRO & KPI STATS BAR (ALWAYS VISIBLE OR OVERVIEW) -->
+        <div class="mb-8 bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2 text-xs font-semibold tracking-wider text-brand-700 uppercase">
+                        <span>Sənaye Analiz Hesabatı</span>
+                        <span>•</span>
+                        <span>Yenilənmə Tarixi: 24 Avqust 2026</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">
+                        Çin Xalq Respublikasının Kənd Təsərrüfatı Dronları (UAV) Bazarı
+                    </h2>
+                    <p class="text-slate-600 max-w-3xl text-sm leading-relaxed">
+                        Çin istehsalçıları qlobal aqrar dron bazarının 70%-dən çoxuna nəzarət edir. Bu portal 10 aparıcı istehsalçının, onların ekosistemlərinin və 12 flaqman modelin aerodinamik, kommersiya və texniki parametr təhlilini təqdim edir.
+                    </p>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100 min-w-[320px]">
+                    <div class="text-center p-2">
+                        <div class="text-2xl font-black text-brand-600">70%+</div>
+                        <div class="text-xs text-slate-500 font-medium">Qlobal Bazar Payı</div>
+                    </div>
+                    <div class="text-center p-2">
+                        <div class="text-2xl font-black text-slate-800">10</div>
+                        <div class="text-xs text-slate-500 font-medium">Aparıcı İstehsalçı</div>
+                    </div>
+                    <div class="text-center p-2">
+                        <div class="text-2xl font-black text-slate-800">12</div>
+                        <div class="text-xs text-slate-500 font-medium">Flaqman Model</div>
+                    </div>
+                    <div class="text-center p-2">
+                        <div class="text-2xl font-black text-brand-600">150 kg</div>
+                        <div class="text-xs text-slate-500 font-medium">Maks. Uçuş Çəkisi</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 1: DASHBOARD & ANALYTICS -->
+        <section id="tab-dashboard" class="tab-content space-y-8">
+            <div class="bg-emerald-900 text-white p-6 rounded-2xl shadow-md flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="space-y-2">
+                    <h3 class="text-xl font-bold">Ağır Yük (Heavy-Lift) və Sürətli Şarj İnqilabı</h3>
+                    <p class="text-emerald-100 text-sm max-w-3xl leading-relaxed">
+                        Aqrar dronlar artıq 10-20L yüngül çənlərdən 40-80L tutumlu heavy-lift platformalarına keçmişdir. Aktiv fazalı anten barmaqlığı radarları, Lidar sistemləri və 7-11 dəqiqəlik su ilə soyudulan ultra-sürətli şarj texnologiyaları standartlaşmışdır.
+                    </p>
+                </div>
+                <button onclick="switchTab('models')" class="bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm px-5 py-3 rounded-xl transition whitespace-nowrap shadow">
+                    Modelləri Müqayisə Et →
+                </button>
+            </div>
+
+            <!-- Visual Charts Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Chart 1: Payload & Tank Capacity -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                    <div class="mb-4">
+                        <h4 class="font-bold text-slate-900 text-base">Flaqman Modellərdə Faydalı Yük və Çən Tutumu (L/kg)</h4>
+                        <p class="text-xs text-slate-500">Maye çən tutumu və maks. çiləmə yükünün model üzrə müqayisəsi</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartPayload"></canvas>
+                    </div>
+                    <div class="mt-3 text-xs text-slate-500 border-t border-slate-100 pt-2">
+                        * Mənbə: İstehsalçıların rəsmi spesifikasiya sənədləri (2024-2026).
+                    </div>
+                </div>
+
+                <!-- Chart 2: Flow Rate vs Max Takeoff Weight -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                    <div class="mb-4">
+                        <h4 class="font-bold text-slate-900 text-base">Çiləmə Axın Sürəti (L/dəq) və Maksimum Uçuş Çəkisi (MTOW)</h4>
+                        <p class="text-xs text-slate-500">Atomizasiya sisteminin maksimal gücü və aparanın ümumi çəkisi</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartFlowRate"></canvas>
+                    </div>
+                    <div class="mt-3 text-xs text-slate-500 border-t border-slate-100 pt-2">
+                        * DJI T100 və EAVision J150 bimodal/4-ucluq rejimində 40 L/dəq axın sürəti ilə liderlik edir.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart 3: Charge Time & Battery Tech -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="mb-4">
+                    <h4 class="font-bold text-slate-900 text-base">Batareya Sürətli Şarj Müddətləri (Dəqiqə ilə)</h4>
+                    <p class="text-xs text-slate-500">Soyutmalı stansiyalar və generatordan şarj vaxtının müqayisəsi (az olması daha yaxşıdır)</p>
+                </div>
+                <div class="chart-container" style="height: 280px;">
+                    <canvas id="chartCharging"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: COMPANY DIRECTORY -->
+        <section id="tab-companies" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">Çin Aqrar Dron İstehsalçılarının Reyestri</h3>
+                        <p class="text-sm text-slate-600">Bazar payına və innovasiya mərkəzlərinə görə 10 əsas istehsalçının profili</p>
+                    </div>
+                    <!-- Search Input -->
+                    <div class="w-full md:w-72">
+                        <input type="text" id="companySearch" oninput="filterCompanies()" placeholder="Şirkət və ya şəhər axtar..." class="w-full text-sm px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Companies Cards Grid -->
+            <div id="companiesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Company Cards Injected via JS -->
+            </div>
+        </section>
+
+        <!-- SECTION 3: TYPOLOGY & ARCHITECTURE -->
+        <section id="tab-typology" class="tab-content hidden space-y-8">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="text-xl font-bold text-slate-900 mb-2">Aqrar Dron Tipologiyası və Aerodinamik Təhlil</h3>
+                <p class="text-sm text-slate-600 leading-relaxed max-w-4xl">
+                    Kənd təsərrüfatı aviasiyasında tətbiq sahəsindən asılı olaraq aparatlarda aerodinamik konfiqurasiyalar kəskin fərqlənir. Aşağıdakı 5 əsas kateqoriya sənayedə fərqli funksional ehtiyacları ödəyir.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Category 1 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-brand-500 transition">
+                    <div class="space-y-3">
+                        <div class="w-10 h-10 bg-brand-100 text-brand-700 rounded-xl flex items-center justify-center font-bold text-lg">01</div>
+                        <h4 class="font-bold text-lg text-slate-900">Çoxpərli (Multirotor) Dronlar</h4>
+                        <div class="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md inline-block">Dördpərli, Altıpərli, Koaksial Dual-Rotor</div>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Bazarın mütləq əksəriyyətini təşkil edir. Asılı qalma (hover) rejimi və aşağıya doğru güclü hava axını (Downwash) sayəsində dərmanı yarpaqların alt hissəsinə nüfuz etdirir. Maye çiləmə və bərk yayım üçün standartdır.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                        <span class="font-semibold text-slate-700">Əsas Oyunçular:</span> DJI, XAG, TopXGun, Joyance, Huida.
+                    </div>
+                </div>
+
+                <!-- Category 2 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-brand-500 transition">
+                    <div class="space-y-3">
+                        <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center font-bold text-lg">02</div>
+                        <h4 class="font-bold text-lg text-slate-900">Tək-Rotor Helikopter Tipli</h4>
+                        <div class="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md inline-block">Yanacaqlı və ya İri Elektrik Mühərrikli</div>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Yamaha RMAX ənənəsindən gələn bu modellər tək nəhəng rotor vasitəsilə ən dərin və sıx bitki örtüyünü yaracaq kəskin külək pərdəsi yaradır. Sıx meşəliklərdə və hündür gövdəli bitkilərdə istifadə olunur.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                        <span class="font-semibold text-slate-700">Əsas Oyunçular:</span> Hanhe Aviation (Mercury seriyası), Eagle Brother.
+                    </div>
+                </div>
+
+                <!-- Category 3 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-brand-500 transition">
+                    <div class="space-y-3">
+                        <div class="w-10 h-10 bg-blue-100 text-blue-800 rounded-xl flex items-center justify-center font-bold text-lg">03</div>
+                        <h4 class="font-bold text-lg text-slate-900">Sabit-Qanad / VTOL Dronlar</h4>
+                        <div class="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md inline-block">Şaquli Qalxan Sabit Qanadlı xəritələmə</div>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Çiləmə etmir. Mühəndislik məqsədi uzunmüddətli uçuşla yüzlərlə hektar ərazinin multispektral (NDVI) monitorinqini və 3D xəritələnməsini aparmaqdır. Resept xəritələri yaradaraq çiləmə dronlarına ötürür.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                        <span class="font-semibold text-slate-700">Əsas Oyunçular:</span> DJI (Mavic 3M / VTOL seriyaları), XAG.
+                    </div>
+                </div>
+
+                <!-- Category 4 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-brand-500 transition">
+                    <div class="space-y-3">
+                        <div class="w-10 h-10 bg-purple-100 text-purple-800 rounded-xl flex items-center justify-center font-bold text-lg">04</div>
+                        <h4 class="font-bold text-lg text-slate-900">Bağlı (Tethered) Dronlar</h4>
+                        <div class="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md inline-block">Kabel Vasitəsilə Sabit Qidalanma</div>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Kabel vasitəsilə yerdəki generatora bağlanır. Günlərlə havada qala bilir. Sərhəd nəzarəti, fermada heyvanların daimi müşahidəsi və dağlıq zonada siqnal gücləndirici baza stansiyası kimi istifadə edilir.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                        <span class="font-semibold text-slate-700">Əsas Tətbiq:</span> Müşahidə və Siqnal Releyləri.
+                    </div>
+                </div>
+
+                <!-- Category 5 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-brand-500 transition col-span-1 md:col-span-2">
+                    <div class="space-y-3">
+                        <div class="w-10 h-10 bg-emerald-100 text-emerald-800 rounded-xl flex items-center justify-center font-bold text-lg">05</div>
+                        <h4 class="font-bold text-lg text-slate-900">Yerüstü Robot Platformaları (UGV)</h4>
+                        <div class="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md inline-block">Avtonom Yerüstü Kənd Təsərrüfatı Robotları</div>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Dronlarla eyni RTK naviqasiyası və proqram təminatı üzərindən işləyir. 100+ kq ağır yükləri daşıyır, ağacların altından yuxarıya çiləmə edir və zərif istixana mühitində havanı bulandırmadan əməliyyat aparır.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                        <span class="font-semibold text-slate-700">Əsas Flaiqman:</span> XAG R150 Avtonom Yerüstü Robot.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: APPLICATION MATRIX -->
+        <section id="tab-matrix" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <h3 class="text-xl font-bold text-slate-900">Tətbiq Məqsədi və Texnologiya Matrisası</h3>
+                <p class="text-sm text-slate-600">İstehsalçıların aktiv seriyalarının mühəndislik dizaynına görə icra etdiyi funksiyalar</p>
+                
+                <!-- CRITICAL AGRO NOTE BOX -->
+                <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-xl text-amber-900 text-xs sm:text-sm leading-relaxed">
+                    <span class="font-bold uppercase tracking-wider text-amber-800 block mb-1">Mühüm Aqronomiya Və Mühəndislik Qeydi (Suvarma Haqqında):</span>
+                    Texniki sənədlərdə keçən <span class="font-bold">"Irrigation" (Suvarma)</span> termini heç vaxt torpağın litiqlərlə fiziki suvarması mənasını vermir. Dronların maks. 50-80L çən həcmi kütləvi torpaq suvarması üçün kifayət deyildir. Bu termin kənd təsərrüfatı aviasiyasında yalnız <span class="font-semibold">foliar (yarpaq üzərinə) incə damcı çiləməsi</span> və mikro-nəmləndirmə mənasında işlədilir.
+                </div>
+            </div>
+
+            <!-- Matrix Table Container -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900 text-white font-semibold">
+                            <th class="p-4 border-b border-slate-800">Şirkət / Seriya</th>
+                            <th class="p-4 border-b border-slate-800">Maye Çiləmə Texnologiyası</th>
+                            <th class="p-4 border-b border-slate-800">Bərk Yayım Mexanizmi</th>
+                            <th class="p-4 border-b border-slate-800">Xəritələmə / NDVI</th>
+                            <th class="p-4 border-b border-slate-800">Ağır Yük Daşıma (Lifting)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 text-slate-700">
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-4 font-bold text-slate-900">DJI (Agras T-Seriyası)</td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> • Maqnit sürücülü pervanə nasosu + Fırlanan mərkəzdənqaçma ucluqlar (50-500 μm)
+                            </td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> • Mərkəzdənqaçma diskli Vint/Spiral qidalandırıcı (108 - 400 kq/dəq)
+                            </td>
+                            <td class="p-4"><span class="text-emerald-700 font-semibold">Bəli</span> • Daxili HD kameralar və Mavic 3M inteqrasiyası</td>
+                            <td class="p-4"><span class="text-emerald-700 font-semibold">Bəli</span> • T100 modelində 75 kq lifting dəstəyi</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 bg-slate-50/50">
+                            <td class="p-4 font-bold text-slate-900">XAG (P / V / R Seriyası)</td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> • Peristaltik nasoslar + RevoSpray mərkəzdənqaçma atomizasiya (60-500 μm)
+                            </td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> • RevoCast şaquli dalğalanma və vintli sistemlər (300 kq/dəq)
+                            </td>
+                            <td class="p-4"><span class="text-emerald-700 font-semibold">Bəli</span> • Avtonom 3D skanlama və tarla xəritələnməsi</td>
+                            <td class="p-4"><span class="text-emerald-700 font-semibold">Bəli</span> • RevoSling təhlükəsiz yük daşıma rejimi</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-4 font-bold text-slate-900">TopXGun (FP-Seriyası)</td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> • Külək-təzyiqli mərkəzdənqaçma ucluqlar (20 L/dəq axın)
+                            </td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> • Hava-üfləmə və ya mərkəzdənqaçma yayıcı (200 kq/dəq)
+                            </td>
+                            <td class="p-4"><span class="text-slate-400">Məhdud</span> • RTK bazalı nöqtə marşrutlanması</td>
+                            <td class="p-4"><span class="text-emerald-700 font-semibold">Bəli</span> • FP600 ağır yük qaldırma</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 bg-slate-50/50">
+                            <td class="p-4 font-bold text-slate-900">EAVision (J-Seriyası)</td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> • Bimodal Mist Nozzle (10-300 μm ultra-incə dumanlandırma)
+                            </td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> • Vint qidalandırıcı yayım (240 kq/dəq)
+                            </td>
+                            <td class="p-4"><span class="text-emerald-700 font-semibold">Bəli</span> • Lidar əsaslı 3D meşə/bağ xəritələnməsi</td>
+                            <td class="p-4"><span class="text-emerald-700 font-semibold">Bəli</span> • J150 modelində Sling/lifting dəstəyi</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-4 font-bold text-slate-900">Joyance (JT-Seriyası)</td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> • 4-kanallı mərkəzdənqaçma atomizasiyası (15 L/dəq)
+                            </td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> • Vintli qranul yayma mexanizmi
+                            </td>
+                            <td class="p-4"><span class="text-slate-400">Xeyr</span> • Sırf çiləmə məqsədli</td>
+                            <td class="p-4"><span class="text-slate-400">Xeyr</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 bg-slate-50/50">
+                            <td class="p-4 font-bold text-slate-900">Huida Tech (HD Seriyası)</td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> • Mərkəzdənqaçma ucluqlar (13.5 L/dəq)
+                            </td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> • Fırlanan diskli yayma
+                            </td>
+                            <td class="p-4"><span class="text-emerald-700 font-semibold">Bəli</span> • Smart Farm proqram inteqrasiyası</td>
+                            <td class="p-4"><span class="text-slate-400">Xeyr</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-4 font-bold text-slate-900">Qifei / TTA / Eagle / Hanhe</td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> • Standart mərkəzdənqaçma və ya təzyiqli ucluqlar
+                            </td>
+                            <td class="p-4">
+                                <span class="text-emerald-700 font-semibold">Bəli</span> (Modelə görə dəyişir)
+                            </td>
+                            <td class="p-4"><span class="text-slate-400">Məhdud</span></td>
+                            <td class="p-4"><span class="text-slate-400">Xeyr</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECTION 5: MODEL DATA EXPLORER & COMPARATOR -->
+        <section id="tab-models" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">Flaqman Modellərin Texniki Bazasının Müqayisəsi</h3>
+                        <p class="text-sm text-slate-600">12 populyar aqrar dron modelinin mühəndislik göstəriciləri</p>
+                    </div>
+                    
+                    <!-- Compare Button Trigger -->
+                    <button onclick="openCompareModal()" id="btnCompare" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+                        <span>Müqayisə Paneli</span>
+                        <span id="compareCount" class="bg-brand-500 text-white px-2 py-0.5 rounded-full text-[10px]">0</span>
+                    </button>
+                </div>
+
+                <!-- Filters Bar -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">İstehsalçı</label>
+                        <select id="filterBrand" onchange="filterModels()" class="w-full text-xs p-2 border border-slate-300 rounded-lg">
+                            <option value="">Bütün İstehsalçılar</option>
+                            <option value="DJI">DJI</option>
+                            <option value="XAG">XAG</option>
+                            <option value="TopXGun">TopXGun</option>
+                            <option value="EAVision">EAVision</option>
+                            <option value="Joyance">Joyance</option>
+                            <option value="Huida Tech">Huida Tech</option>
+                            <option value="TTA">TTA</option>
+                            <option value="Qifei Intelligent">Qifei Intelligent</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Maye Çən Həcmi</label>
+                        <select id="filterCapacity" onchange="filterModels()" class="w-full text-xs p-2 border border-slate-300 rounded-lg">
+                            <option value="">Bütün Həcmlər</option>
+                            <option value="heavy">Ağır (50L və daha çox)</option>
+                            <option value="medium">Orta (20L - 49L)</option>
+                            <option value="light">Yüngül (20L-dən az)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Axtarış</label>
+                        <input type="text" id="modelSearch" oninput="filterModels()" placeholder="Model adı..." class="w-full text-xs p-2 border border-slate-300 rounded-lg">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900 text-white font-semibold">
+                            <th class="p-3 border-b border-slate-800 text-center">Seç</th>
+                            <th class="p-3 border-b border-slate-800">Model / İstehsalçı</th>
+                            <th class="p-3 border-b border-slate-800">Tipi & Nəsil</th>
+                            <th class="p-3 border-b border-slate-800">Max. Uçuş Çəkisi (MTOW)</th>
+                            <th class="p-3 border-b border-slate-800">Çən (Maye / Yayma)</th>
+                            <th class="p-3 border-b border-slate-800">Max. Axın Sürəti</th>
+                            <th class="p-3 border-b border-slate-800">Batareya & Sürətli Şarj</th>
+                            <th class="p-3 border-b border-slate-800">Naviqasiya & Radar</th>
+                            <th class="p-3 border-b border-slate-800">Təxmini Qiymət (USD)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modelsTableBody" class="divide-y divide-slate-200 text-slate-700">
+                        <!-- JS Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECTION 6: DECISION WIZARD / CALCULATOR -->
+        <section id="tab-wizard" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="text-xl font-bold text-slate-900 mb-1">Ağıllı Dron Seçim və Planlaşdırma Köməkçisi</h3>
+                <p class="text-sm text-slate-600">Təsərrüfatınızın sahəsinə, relyefinə və əməliyyat tələblərinə uyğun dron tövsiyəsi</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <!-- Input 1: Farm Type -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">1. Təsərrüfat Tipi & Relyef</label>
+                        <select id="wizTerrain" class="w-full text-sm p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500">
+                            <option value="field">Geniş Düzənlik Tarlalar (Taxıl, Pambıq, Soya)</option>
+                            <option value="orchard">Dağlıq Meyvə Bağları & Sıx Çətirli Ağaclar</option>
+                            <option value="multi">Çoxfunksiyalı (Çiləmə + Yayma + Ağır Yük Taşınması)</option>
+                            <option value="budget">Kiçik / Orta Təsərrüfat (Büdcə Yönümlü)</option>
+                        </select>
+                    </div>
+
+                    <!-- Input 2: Farm Size -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">2. Sahə Ölçüsü (Hektar ilə)</label>
+                        <input type="number" id="wizSize" value="100" min="5" max="5000" class="w-full text-sm p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500">
+                    </div>
+
+                    <!-- Input 3: Daily Target Hours -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">3. Günlük Əməliyyat Müddəti (Saat)</label>
+                        <input type="number" id="wizHours" value="6" min="1" max="12" class="w-full text-sm p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500">
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <button onclick="calculateRecommendation()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm py-3 px-6 rounded-xl transition shadow">
+                        Tövsiyə Edilən Dronu və Əməliyyat Planını Hesabla →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Wizard Output Results Card -->
+            <div id="wizardResult" class="hidden bg-slate-900 text-white p-6 rounded-2xl shadow-md space-y-4">
+                <div class="border-b border-slate-800 pb-3 flex items-center justify-between">
+                    <h4 class="text-lg font-bold text-brand-400">Hesablanmış Optimallaşdırma Nəticəsi</h4>
+                    <span class="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-slate-700">Mühəndislik Alqoritmi</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="space-y-1">
+                        <span class="text-xs text-slate-400">Tövsiyə Olunan Modellər:</span>
+                        <div id="resModels" class="text-base font-bold text-white">---</div>
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-xs text-slate-400">Təxmini Tələb Olunan Uçuş Sayı:</span>
+                        <div id="resFlights" class="text-base font-bold text-brand-400">---</div>
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-xs text-slate-400">Gözlənilən Ümumi Müddət:</span>
+                        <div id="resTime" class="text-base font-bold text-white">---</div>
+                    </div>
+                </div>
+
+                <div id="resNote" class="text-xs text-slate-300 bg-slate-850 p-4 rounded-xl border border-slate-800 leading-relaxed">
+                    <!-- Note Inject -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 7: GLOSSARY -->
+        <section id="tab-glossary" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">Vacib Texniki Parametrlər Və Mühəndislik Lüğəti</h3>
+                        <p class="text-sm text-slate-600">Peşəkar spesifikasiyalarda istifadə edilən əsas aviasiya və aqrotexniki terminlər</p>
+                    </div>
+                    <div class="w-full md:w-64">
+                        <input type="text" id="glossarySearch" oninput="filterGlossary()" placeholder="Termin axtar..." class="w-full text-xs p-2.5 border border-slate-300 rounded-xl">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Glossary Grid -->
+            <div id="glossaryGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Terms injected via JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-8 border-t border-slate-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                    <span class="font-bold text-slate-200">Çin Aqrar Dronları Araşdırması</span> • Mühəndislik Və Bazar Analizi
+                </div>
+                <div class="text-slate-500">
+                    Son Məlumat Yenilənməsi: 24 Avqust 2026
+                </div>
+            </div>
+            <p class="text-slate-500 leading-relaxed text-[11px]">
+                Bu sənəd rəsmi istehsalçı spesifikasiyalarına, distribütor sənədlərinə və sənaye reytinqlərinə əsaslanır. İctimai mənbələrdə təsdiqini tapmayan göstəricilər spekulyasiyadan qaçınmaq üçün "İctimai mənbədə tapılmadı" kimi işarələnmişdir.
+            </p>
+        </div>
+    </footer>
+
+    <!-- COMPARISON MODAL -->
+    <div id="compareModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white">
+                <h3 class="font-bold text-base">Modellərin Üzbəüz (Head-to-Head) Müqayisəsi</h3>
+                <button onclick="closeCompareModal()" class="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow text-xs space-y-4">
+                <div id="compareContent" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Dynamic Compare Cards -->
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+                <button onclick="closeCompareModal()" class="bg-slate-800 text-white px-5 py-2 rounded-xl text-xs font-semibold">Bağla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT DATA & INTERACTIVITY LOGIC -->
+    <script>
+        // GLOBAL DATA STRUCTURES
+        const companiesData = [
+            {
+                name: "Shenzhen DJI Technology Co., Ltd. (大疆创新 - Dàjiāng Chuàngxīn)",
+                hq: "Shenzhen, Guangdong",
+                founded: "2006",
+                factories: "Shenzhen, Dongguan",
+                export: "100+ ölkə (Şimali Amerika, Avropa, Asiya, Latın Amerikası). Qlobal bazarın 70%-i.",
+                series: "Agras T-seriyası (T60, T50, T40, T25, T100)",
+                positioning: "Flaqman aqrar mütəxəssis, tam miqyaslı avtomatlaşdırma.",
+                evolution: "2015-ci ildəki sadə MG seriyasından, ultra-ağır yük koaksial T-seriyasına keçid, inteqrasiya olunmuş RTK və çoxölçülü radar."
+            },
+            {
+                name: "Guangzhou Xaircraft Technology Co., Ltd. (极飞科技 - Jífēi Kējì)",
+                hq: "Guangzhou, Guangdong",
+                founded: "2007",
+                factories: "Guangzhou, Dongguan",
+                export: "Asiya, Avstraliya, Latın Amerikası (Braziliya). CNH Industrial partnyorluğu, Yaponiya filialı.",
+                series: "P-seriyası (P150 Max, P100 Pro), V-seriyası (V40), R-seriyası (UGV R150)",
+                positioning: "Mürəkkəb relyef, irimiqyaslı əməliyyatlar və qapalı 'ağıllı ferma' ekosistemi.",
+                evolution: "Sadə çiləmə qurğularından, dördpərli bimodal (çiləmə/yayma/daşıma) platformalara."
+            },
+            {
+                name: "TopXGun Robotics Co., Ltd. (拓攻机器人 - Tuògōng Jīqìrén)",
+                hq: "Nanjing, Jiangsu",
+                founded: "2015",
+                factories: "Nanjing",
+                export: "Şərqi/Cənub-Şərqi Asiya, Okeaniya, Latın Amerikası (Mercoagro distribütoru), Şimali Amerika.",
+                series: "FP-seriyası (FP800, FP600, FP700, FP300E)",
+                positioning: "Ağır yük (60-80kq) tətbiqləri, dağlıq və mürəkkəb mühit.",
+                evolution: "İlk öncə sırf uçuş idarəetmə cihazları (flight control brains) yaratmaqdan öz flaqman dron istehsalına keçid."
+            },
+            {
+                name: "Suzhou EAVision Robotic Tech Co., Ltd. (极目机器人 - Jímù Jīqìrén)",
+                hq: "Suzhou, Jiangsu",
+                founded: "~2016",
+                factories: "Suzhou",
+                export: "Şimali Amerika, Cənub-Şərqi Asiya, Avropa bazarlarında qlobal elmi-tədqiqat və satış.",
+                series: "J-seriyası və EA-seriyası (J150, J100, J70, EA-30XP)",
+                positioning: "Dağlıq meyvə bağları üçün 'kor nöqtəsiz' dumanlandırma və Lidar naviqasiyası.",
+                evolution: "CCMS bimodal ucluqlardan xəritələmə, dərmanlama və daşımanı birləşdirən 4-cü nəsil avtonom sistemlərə."
+            },
+            {
+                name: "Shandong Joyance Intelligence Tech Co., Ltd. (佳悦智能 - Jiāyuè Zhìnéng)",
+                hq: "Weifang, Shandong",
+                founded: "2012",
+                factories: "Weifang",
+                export: "120-dən çox ölkəyə kütləvi ixrac. CE, FCC, RoHS, ISO9001 sertifikatları.",
+                series: "JT-seriyası (JT100, JT60, JT50, JT40L, JT20)",
+                positioning: "Yüksək qiymət/performans nisbəti, böyük həcmli tarla əməliyyatları.",
+                evolution: "Kiçik həcmli platformalardan sənaye dərəcəli karbon lifli qatlana bilən modellərə keçid."
+            },
+            {
+                name: "Heilongjiang Huida Technology Co., Ltd. (惠达科技 - Huìdá Kējì)",
+                hq: "Harbin, Heilongjiang",
+                founded: "2009",
+                factories: "Harbin (İstehsal), Şanxay (Ar-Ge)",
+                export: "Çin daxili bazarı, Mərkəzi Asiya və Avrasiya coğrafiyası.",
+                series: "HD-seriyası (HD540 Pro, HD540)",
+                positioning: "Geniş tarla və kütləvi əkinçilik üçün səmərəli flaqmanlar.",
+                evolution: "Avtonom traktor naviqasiya təcrübəsini hava platformalarına inteqrasiya edib."
+            },
+            {
+                name: "Beijing TT Aviation Technology Co., Ltd. (北方天途 - Běifāng Tiāntú)",
+                hq: "Beijing",
+                founded: "2008",
+                factories: "Beijing (Changping sənaye zonası)",
+                export: "Asiya, Yaxın Şərq. Güclü AOPA təlim şəbəkəsi.",
+                series: "M6E-seriyası (M6E-G200, M6E-EDU)",
+                positioning: "Təhsil, giriş səviyyəsi təlim və orta seqment bitki mühafizəsi.",
+                evolution: "Modul dizayn və yeni pilotların mənimsəyə biləcəyi təlim yönümlü sistemlər."
+            },
+            {
+                name: "Shenzhen Eagle Brother UAV Innovation Co., Ltd. (天鹰兄弟)",
+                hq: "Shenzhen, Guangdong",
+                founded: "2014",
+                factories: "Shenzhen (Longgang) + 14 daxili filial",
+                export: "Daxili bazar və Cənub-Şərqi Asiya.",
+                series: "TY-seriyası (TY-M40, TY-M16, TY-R35)",
+                positioning: "Kiçik/orta torpaq sahələri və yeni başlayan pilotlar.",
+                evolution: "Elektrikli çoxpərlilərdən əlavə uzun uçuş üçün yanacaq mühərrikli tək-rotor inkişafı."
+            },
+            {
+                name: "Wuxi Hanhe Aviation Technology Co., Ltd. (无锡汉和)",
+                hq: "Wuxi, Jiangsu",
+                founded: "2008",
+                factories: "Wuxi",
+                export: "Daxili bazar və spesifik beynəlxalq layihələr.",
+                series: "Mercury (水星) seriyası (Mercury 1, Mercury 150)",
+                positioning: "Sıx çətirli bitkilər və meşəliklər üçün tək-rotorlu güclü hava axını.",
+                evolution: "Elektrik mühərrikli tək-rotor helikopterlərin optimallaşdırılması."
+            },
+            {
+                name: "Hangzhou Qifei Intelligent Tech Co., Ltd. (启飞智能)",
+                hq: "Hangzhou, Zhejiang",
+                founded: "2015",
+                factories: "Hangzhou",
+                export: "Latın Amerikası, Afrika və Asiya-Sakit okean ölkələri.",
+                series: "A-seriyası (A22 RTK, A30)",
+                positioning: "Fərdiləşdirilə bilən (OEM/ODM) platformalar, ənənəvi əkinçilik.",
+                evolution: "Asan dəyişdirilə bilən çən sistemləri və dördpərli konfiqurasiyalar."
+            }
+        ];
+
+        const modelsData = [
+            {
+                id: "t100",
+                name: "Agras T100",
+                brand: "DJI",
+                type: "Çoxpərli (Koaksial)",
+                gen: "2024+",
+                mtow: "148 kq / 149.9 kq",
+                tank: "75 L / 150 L",
+                payload: "75 kq / 75 kq",
+                flow: "30-40 L/dəq",
+                battery: "41000 mAh (DB2160)",
+                charge: "10-11 dəq",
+                nav: "RTK (+/-10sm), Fazalı Radar + Lidar + Binokulyar (60m)",
+                ip: "İct. mənb. yoxdur",
+                price: "~$45,000 - $55,000"
+            },
+            {
+                id: "t60",
+                name: "Agras T60 (3WWDZ-50A)",
+                brand: "DJI",
+                type: "Çoxpərli (Dördpərli)",
+                gen: "2024-2025",
+                mtow: "111 kq / 124 kq",
+                tank: "50 L / 80 L",
+                payload: "50 kq / 60 kq",
+                flow: "18-28 L/dəq",
+                battery: "40000 mAh, 52.2V",
+                charge: "10-12 dəq (D12500iE)",
+                nav: "RTK (1sm), 2x Fazalı Radar + Binokulyar",
+                ip: "İct. mənb. yoxdur",
+                price: "~$15,999 - $17,999"
+            },
+            {
+                id: "t50",
+                name: "Agras T50",
+                brand: "DJI",
+                type: "Çoxpərli (Koaksial)",
+                gen: "2023-2024",
+                mtow: "92 kq / 103 kq",
+                tank: "40 L / 75 L",
+                payload: "40 kq / 50 kq",
+                flow: "12-16 L/dəq",
+                battery: "38000 mAh, 52.2V",
+                charge: "9-12 dəq (7200W)",
+                nav: "RTK, Omnidireksional Radar + Vizual",
+                ip: "IPX6K",
+                price: "~$24,000 - $28,000"
+            },
+            {
+                id: "p150max",
+                name: "P150 Max",
+                brand: "XAG",
+                type: "Çoxpərli (Dördpərli)",
+                gen: "2024-2025",
+                mtow: "113 kq / 128 kq",
+                tank: "80 L / 115 L",
+                payload: "80 kq / 80 kq",
+                flow: "32-46 L/dəq",
+                battery: "Ultra-Fast Smart Batareya",
+                charge: "7 dəq (Su ilə soyudulan)",
+                nav: "RTK / VRTK, 4D Radar + Vizual AR",
+                ip: "IPX6K",
+                price: "~$45,000+"
+            },
+            {
+                id: "p100pro",
+                name: "P100 Pro",
+                brand: "XAG",
+                type: "Çoxpərli (Qatlanan)",
+                gen: "2023",
+                mtow: "İct. mənb. tapılmadı",
+                tank: "50 L / 80 L",
+                payload: "50 kq / 50 kq",
+                flow: "15-25 L/dəq",
+                battery: "962 Wh (XBS)",
+                charge: "11 dəq (Su soyutmalı)",
+                nav: "İkili antenna RTK, 4D Radar + AI",
+                ip: "IPX6K",
+                price: "İct. mənb. tapılmadı"
+            },
+            {
+                id: "fp600",
+                name: "FP600",
+                brand: "TopXGun",
+                type: "Çoxpərli (Alüminium)",
+                gen: "2024",
+                mtow: "60 kq faydalı yük (MTOW tapılmadı)",
+                tank: "50 L / 76 L",
+                payload: "50 kq / 60 kq",
+                flow: "20 L/dəq",
+                battery: "2x 20Ah",
+                charge: "9000W hava soyutmalı",
+                nav: "RTK, Meyillik radarı",
+                ip: "IP67",
+                price: "~$10,999"
+            },
+            {
+                id: "j150",
+                name: "J150 (EA-J150)",
+                brand: "EAVision",
+                type: "Çoxpərli",
+                gen: "2024",
+                mtow: "145 kq / 149.9 kq",
+                tank: "70 L / 100 L",
+                payload: "70 kq / 80 kq",
+                flow: "40 L/dəq",
+                battery: "45Ah CTB (58V)",
+                charge: "9 dəq (13000W ikili port)",
+                nav: "RTK (+/-10sm), Lidar (150m) + Fırlanan radar",
+                ip: "IPX6K",
+                price: "İct. mənb. tapılmadı"
+            },
+            {
+                id: "j100",
+                name: "J100 (EA-J100)",
+                brand: "EAVision",
+                type: "Çoxpərli",
+                gen: "2024",
+                mtow: "115 kq / 115 kq",
+                tank: "45 L / 60 L",
+                payload: "45 kq / 60 kq",
+                flow: "24 L/dəq",
+                battery: "29000 mAh CTB",
+                charge: "9 dəq (9000W)",
+                nav: "RTK, Lidar + 360° MM-dalğa radar",
+                ip: "IPX6K",
+                price: "~$19,999 - $31,995"
+            },
+            {
+                id: "jt50",
+                name: "JT50 (JT50L)",
+                brand: "Joyance",
+                type: "Çoxpərli",
+                gen: "2023-2024",
+                mtow: "80-100 kq",
+                tank: "50 L / 80 L",
+                payload: "50 kq",
+                flow: "15 L/dəq",
+                battery: "30000 mAh (18s)",
+                charge: "10 dəq (8000W)",
+                nav: "4G RTK (±2sm), 360° Radar + Relyef radarı",
+                ip: "IP67",
+                price: "İct. mənb. tapılmadı"
+            },
+            {
+                id: "hd540pro",
+                name: "HD540 Pro",
+                brand: "Huida Tech",
+                type: "Çoxpərli (Altıpərli)",
+                gen: "2023-2024",
+                mtow: "88 kq / 95 kq",
+                tank: "40 L / 60 L",
+                payload: "40 kq / 45 kq",
+                flow: "13.5 L/dəq",
+                battery: "30000 mAh (68.4V)",
+                charge: "13 dəq",
+                nav: "RTK (±10sm), Radar (0.1m dəqiqlik)",
+                ip: "IPX7",
+                price: "~$8,980 - $9,999"
+            },
+            {
+                id: "m6e",
+                name: "M6E-G200",
+                brand: "TTA",
+                type: "Çoxpərli (Altıpərli)",
+                gen: "2022-2023",
+                mtow: "123 kq",
+                tank: "16 L",
+                payload: "16 kq",
+                flow: "8 - 16 L/dəq",
+                battery: "İct. mənb. tapılmadı",
+                charge: "İct. mənb. tapılmadı",
+                nav: "GPS RTK",
+                ip: "İct. mənb. yoxdur",
+                price: "İct. mənb. tapılmadı"
+            },
+            {
+                id: "a22",
+                name: "A22 RTK",
+                brand: "Qifei Intelligent",
+                type: "Çoxpərli (Dördpərli)",
+                gen: "2022+",
+                mtow: "49.5 kq",
+                tank: "22 L",
+                payload: "22 kq",
+                flow: "1 - 8 L/dəq",
+                battery: "Lithium-ion",
+                charge: "İct. mənb. tapılmadı",
+                nav: "RTK Standart",
+                ip: "İct. mənb. yoxdur",
+                price: "~$1,732 - $1,924"
+            }
+        ];
+
+        const glossaryTerms = [
+            {
+                term: "RTK (Real-Time Kinematic)",
+                desc: "Standart GPS sistemlərinin metrlik xətasını aradan qaldıraraq, dronun havada santimetr səviyyəsində (+/- 1 sm) dəqiqliklə mövqe tutmasını təmin edən peyk naviqasiya texnologiyasıdır. Toxumların dəqiq sıraya səpilməsi və overlap (üst-üstə düşmə) israfının qarşısını alır."
+            },
+            {
+                term: "Mərkəzdənqaçma Ucluq (Centrifugal Nozzle)",
+                desc: "Mayeni yüksək sürətlə fırlanan diskin üzərinə tökərək mərkəzdənqaçma qüvvəsi ilə atomizasiya edən sistemdir. Əsas üstünlüyü qatı aqrokimyəvi maddələrin kanalları tıxamamasından ibarətdir. Fırlanma sürətini dəyişərək damcı ölçüsünü tənzimləmək mümkündür."
+            },
+            {
+                term: "Peristaltik Nasos (Peristaltic Pump)",
+                desc: "Mayeni elastik borunun xaricindən sıxıb itələyən nasosdur. Aqressiv kimyəvi pestisidlər nasosun daxili metal mexanizmləri ilə təmasa girmir, cihazın ömrünü uzadır və yuma prosesini asanlaşdırır."
+            },
+            {
+                term: "Fazalı Anten Barmaqlığı Radarı (Phased Array Radar)",
+                desc: "Fiziki olaraq fırlanmadan radio dalğalarını müxtəlif istiqamətlərə (360°) yönləndirən, sıx duman və toz altında belə nazik budaqları və naqilləri aşkar edən maneə-aşkarlama sistemidir."
+            },
+            {
+                term: "Lidar (Light Detection and Ranging)",
+                desc: "Lazer şüaları vasitəsilə mühitin yüksək dəqiqlikli 3D xəritəsini çıxaran sensordur. Meyvə ağaclarının yarpaq arxitekturasını tanımaq üçün EAVision dronlarında geniş istifadə olunur."
+            },
+            {
+                term: "Damcı Ölçüsü (μm - Mikrometr)",
+                desc: "Çilənən maye damcısının diametridir. 50-150 μm incə damcılar yarpaq örtüyü üçün əladır lakin küləklə sovrulma riski yüksəkdir. 200-500 μm böyük damcılar distinguishes herbisidlər üçün küləyə dözümlüdür."
+            },
+            {
+                term: "Downwash (Aşağıya doğru hava axını)",
+                desc: "Pervanələrin dronu havada saxlamaq üçün aşağıya doğru yaratdığı təzyiqli hava kütləsidir. Bu axın dərmanı bitki çətirinin ən dərin qatlarına və yarpaqların alt tərəfinə itələyir."
+            }
+        ];
+
+        let selectedCompareIds = [];
+
+        // INITIALIZATION
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCharts();
+            renderCompanies();
+            renderModelsTable();
+            renderGlossary();
+        });
+
+        // TAB SWITCHING LOGIC
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            const navBtns = ['dashboard', 'companies', 'typology', 'matrix', 'models', 'wizard', 'glossary'];
+            navBtns.forEach(btn => {
+                const navEl = document.getElementById(`nav-${btn}`);
+                if (navEl) {
+                    if (btn === tabId) {
+                        navEl.classList.add('border-brand-500', 'text-white');
+                        navEl.classList.remove('border-transparent', 'text-slate-300');
+                    } else {
+                        navEl.classList.remove('border-brand-500', 'text-white');
+                        navEl.classList.add('border-transparent', 'text-slate-300');
+                    }
+                }
+            });
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // RENDER CHARTS USING CHART.JS
+        function renderCharts() {
+            // Chart 1: Payload Bar Chart
+            const ctx1 = document.getElementById('chartPayload').getContext('2d');
+            new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['DJI T100', 'XAG P150', 'EAV J150', 'TopX FP600', 'DJI T60', 'XAG P100Pro', 'EAV J100', 'Huida HD540'],
+                    datasets: [
+                        {
+                            label: 'Maye Çəni (Litr)',
+                            data: [75, 80, 70, 50, 50, 50, 45, 40],
+                            backgroundColor: '#10b981'
+                        },
+                        {
+                            label: 'Yayma Bunkeri (Litr)',
+                            data: [150, 115, 100, 76, 80, 80, 60, 60],
+                            backgroundColor: '#0284c7'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { size: 11 } } }
+                    },
+                    scales: {
+                        x: { ticks: { font: { size: 10 } } },
+                        y: { beginAtZero: true, title: { display: true, text: 'Həcm (Litr)' } }
+                    }
+                }
+            });
+
+            // Chart 2: Flow Rate Bubble / Bar
+            const ctx2 = document.getElementById('chartFlowRate').getContext('2d');
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['XAG P150', 'DJI T100', 'EAV J150', 'XAG P100Pro', 'EAV J100', 'TopX FP600', 'DJI T60', 'Huida HD540'],
+                    datasets: [{
+                        label: 'Maks. Axın Sürəti (L/dəq)',
+                        data: [46, 40, 40, 25, 24, 20, 28, 13.5],
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'L/dəq' } }
+                    }
+                }
+            });
+
+            // Chart 3: Charging Time
+            const ctx3 = document.getElementById('chartCharging').getContext('2d');
+            new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: ['XAG P150 (Su soyutmalı)', 'EAV J150', 'DJI T50', 'DJI T100', 'Joyance JT50', 'Huida HD540'],
+                    datasets: [{
+                        label: 'Tam Şarj Müddəti (Dəqiqə)',
+                        data: [7, 9, 9, 10, 10, 13],
+                        backgroundColor: '#6366f1',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { beginAtZero: true, title: { display: true, text: 'Dəqiqə' } }
+                    }
+                }
+            });
+        }
+
+        // RENDER COMPANIES
+        function renderCompanies(filteredData = companiesData) {
+            const container = document.getElementById('companiesContainer');
+            container.innerHTML = filteredData.map(c => `
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
+                    <div class="space-y-3">
+                        <div class="flex items-start justify-between gap-2">
+                            <h4 class="font-bold text-slate-900 text-base leading-snug">${c.name}</h4>
+                            <span class="text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-1 rounded-md border border-slate-200">${c.founded}</span>
+                        </div>
+                        <div class="text-xs text-slate-500 space-y-1">
+                            <div><span class="font-semibold text-slate-700">Baş Qərargah:</span> ${c.hq}</div>
+                            <div><span class="font-semibold text-slate-700">Zavod / Bazalar:</span> ${c.factories}</div>
+                            <div><span class="font-semibold text-slate-700">İxrac Coğrafiyası:</span> ${c.export}</div>
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-xl text-xs space-y-1 border border-slate-100">
+                            <div class="font-bold text-brand-700">${c.series}</div>
+                            <div class="text-slate-600"><span class="font-semibold">Mövqeləndirmə:</span> ${c.positioning}</div>
+                        </div>
+                        <p class="text-xs text-slate-500 italic leading-relaxed pt-1">
+                            " ${c.evolution} "
+                        </p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterCompanies() {
+            const query = document.getElementById('companySearch').value.toLowerCase();
+            const filtered = companiesData.filter(c => 
+                c.name.toLowerCase().includes(query) || 
+                c.hq.toLowerCase().includes(query) ||
+                c.series.toLowerCase().includes(query)
+            );
+            renderCompanies(filtered);
+        }
+
+        // RENDER MODELS TABLE
+        function renderModelsTable(data = modelsData) {
+            const tbody = document.getElementById('modelsTableBody');
+            tbody.innerHTML = data.map(m => {
+                const isChecked = selectedCompareIds.includes(m.id) ? 'checked' : '';
+                return `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 text-center">
+                        <input type="checkbox" onchange="toggleCompare('${m.id}')" ${isChecked} class="rounded text-brand-600 focus:ring-brand-500">
+                    </td>
+                    <td class="p-3">
+                        <div class="font-bold text-slate-900">${m.name}</div>
+                        <div class="text-[10px] text-slate-500">${m.brand}</div>
+                    </td>
+                    <td class="p-3">
+                        <div>${m.type}</div>
+                        <div class="text-[10px] text-slate-400">${m.gen}</div>
+                    </td>
+                    <td class="p-3 font-semibold text-slate-800">${m.mtow}</td>
+                    <td class="p-3">
+                        <span class="text-emerald-700 font-bold">${m.tank}</span>
+                    </td>
+                    <td class="p-3 font-medium">${m.flow}</td>
+                    <td class="p-3">
+                        <div>${m.battery}</div>
+                        <div class="text-[10px] text-brand-600 font-semibold">${m.charge}</div>
+                    </td>
+                    <td class="p-3 max-w-[180px] truncate" title="${m.nav}">${m.nav}</td>
+                    <td class="p-3 font-bold text-slate-900">${m.price}</td>
+                </tr>
+            `}).join('');
+        }
+
+        function filterModels() {
+            const brand = document.getElementById('filterBrand').value;
+            const capacity = document.getElementById('filterCapacity').value;
+            const query = document.getElementById('modelSearch').value.toLowerCase();
+
+            const filtered = modelsData.filter(m => {
+                const matchBrand = !brand || m.brand === brand;
+                const matchQuery = !query || m.name.toLowerCase().includes(query) || m.brand.toLowerCase().includes(query);
+                
+                let matchCap = true;
+                const tankNum = parseInt(m.tank);
+                if (capacity === 'heavy') matchCap = tankNum >= 50;
+                else if (capacity === 'medium') matchCap = tankNum >= 20 && tankNum < 50;
+                else if (capacity === 'light') matchCap = tankNum < 20;
+
+                return matchBrand && matchQuery && matchCap;
+            });
+
+            renderModelsTable(filtered);
+        }
+
+        // COMPARISON MODAL LOGIC
+        function toggleCompare(id) {
+            if (selectedCompareIds.includes(id)) {
+                selectedCompareIds = selectedCompareIds.filter(i => i !== id);
+            } else {
+                if (selectedCompareIds.length >= 3) {
+                    alert("Maksimum 3 modeli eyni vaxtda müqayisə edə bilərsiniz.");
+                    renderModelsTable(); // Reset check
+                    return;
+                }
+                selectedCompareIds.push(id);
+            }
+            document.getElementById('compareCount').innerText = selectedCompareIds.length;
+        }
+
+        function openCompareModal() {
+            if (selectedCompareIds.length === 0) {
+                alert("Zəhmət olmasa müqayisə etmək üçün ən azı 1 model seçin.");
+                return;
+            }
+            const container = document.getElementById('compareContent');
+            const items = modelsData.filter(m => selectedCompareIds.includes(m.id));
+
+            container.innerHTML = items.map(m => `
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <div class="border-b border-slate-200 pb-2">
+                        <div class="text-xs font-bold text-brand-700">${m.brand}</div>
+                        <h4 class="font-extrabold text-base text-slate-900">${m.name}</h4>
+                        <div class="text-[10px] text-slate-500">${m.type} (${m.gen})</div>
+                    </div>
+                    <div class="space-y-2 text-xs">
+                        <div><span class="font-bold text-slate-700">MTOW:</span> ${m.mtow}</div>
+                        <div><span class="font-bold text-slate-700">Maye / Yayma Çəni:</span> ${m.tank}</div>
+                        <div><span class="font-bold text-slate-700">Maks. Faydalı Yük:</span> ${m.payload}</div>
+                        <div><span class="font-bold text-slate-700">Axın Sürəti:</span> ${m.flow}</div>
+                        <div><span class="font-bold text-slate-700">Batareya:</span> ${m.battery}</div>
+                        <div><span class="font-bold text-brand-600">Şarj Vaxtı:</span> ${m.charge}</div>
+                        <div><span class="font-bold text-slate-700">Naviqasiya:</span> ${m.nav}</div>
+                        <div><span class="font-bold text-slate-700">Qiymət:</span> ${m.price}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('compareModal').classList.remove('hidden');
+        }
+
+        function closeCompareModal() {
+            document.getElementById('compareModal').classList.add('hidden');
+        }
+
+        // DECISION WIZARD LOGIC
+        function calculateRecommendation() {
+            const terrain = document.getElementById('wizTerrain').value;
+            const size = parseFloat(document.getElementById('wizSize').value) || 100;
+            const hours = parseFloat(document.getElementById('wizHours').value) || 6;
+
+            let recModels = "";
+            let haPerHour = 15; // default avg
+            let note = "";
+
+            if (terrain === 'field') {
+                recModels = "DJI Agras T50 / T60, XAG P150 Max, TopXGun FP600";
+                haPerHour = 20;
+                note = "Geniş tarlalar üçün 40-80L çən tutumlu ağır yük platformaları məhsuldarlığı maks. həddə çatdırır. Fasiləsiz əməliyyat üçün 2 batareya və 1 soyutmalı generator stansiyası kifayətdir.";
+            } else if (terrain === 'orchard') {
+                recModels = "EAVision J150 / J100, DJI Agras T50 (Koaksial dual-rotor)";
+                haPerHour = 12;
+                note = "Dağlıq meyvə bağlarında 3D Lidar naviqasiyası və incə dumanlandırma (Bimodal Mist) ucluqları kritikdir. Koaksial rotorların yaratdığı aşağıya doğru güclü hava axını (downwash) dərmanı ağac çətirinin alt qatlarına nüfuz etdirir.";
+            } else if (terrain === 'multi') {
+                recModels = "XAG P150 Max (RevoSling və RevoCast ilə), DJI T100";
+                haPerHour = 22;
+                note = "Bimodal çiləmə, vintli bərk yayım və RevoSling daşıma modulları ilə tək bir güc bloku üzərindən mövsümi işləri icra etmək mümkündür.";
+            } else {
+                recModels = "Qifei A22 RTK, Huida HD540 Pro, Joyance JT50";
+                haPerHour = 14;
+                note = "Büdcəyə həssas təsərrüfatlar üçün kapital xərclərini (CAPEX) $9,000 - $12,000 civarında saxlamaqla təməl hava bitki mühafizəsini təmin edir.";
+            }
+
+            const totalHoursNeeded = (size / haPerHour).toFixed(1);
+            const flightsNeeded = Math.ceil(size / 3); // ~3 ha per flight avg
+
+            document.getElementById('resModels').innerText = recModels;
+            document.getElementById('resFlights').innerText = `~${flightsNeeded} uçuş / ${totalHoursNeeded} saat əməliyyat`;
+            document.getElementById('resTime').innerText = `${(totalHoursNeeded / hours).toFixed(1)} gün (${hours} saat/gün rejimi ilə)`;
+            document.getElementById('resNote').innerHTML = `<span class="font-bold text-white">Aqronomik Tövsiyə:</span> ${note}`;
+
+            document.getElementById('wizardResult').classList.remove('hidden');
+        }
+
+        // GLOSSARY LOGIC
+        function renderGlossary(data = glossaryTerms) {
+            const grid = document.getElementById('glossaryGrid');
+            grid.innerHTML = data.map(g => `
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                    <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                        <span>${g.term}</span>
+                    </h4>
+                    <p class="text-xs text-slate-600 leading-relaxed">${g.desc}</p>
+                </div>
+            `).join('');
+        }
+
+        function filterGlossary() {
+            const query = document.getElementById('glossarySearch').value.toLowerCase();
+            const filtered = glossaryTerms.filter(g => 
+                g.term.toLowerCase().includes(query) || 
+                g.desc.toLowerCase().includes(query)
+            );
+            renderGlossary(filtered);
+        }
+    </script>
+</body>
+</html>
